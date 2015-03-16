@@ -1,5 +1,6 @@
 #include "parameters.hpp"
-#include <cstring>
+#include "utilities.hpp"
+
 #include <algorithm>
 
 
@@ -21,6 +22,7 @@ Parameters::Parameters(int argc, char **argv)
     _file_solution_base(DEFAULT_FILE_NAME),
     _n_time_steps(0),
     _step_snapshot(0),
+    _binary(false),
     _verbose(2),
     _longest_string_key_len(DEFAULT_PRINT_LEN),
     _longest_string_value_len(DEFAULT_PRINT_LEN)
@@ -29,6 +31,7 @@ Parameters::Parameters(int argc, char **argv)
   _parameters["-fbase"] = std::unique_ptr<ParamBase>(new OneParam<std::string>("base name of solution files", &_file_solution_base));
   _parameters["-nt"]    = std::unique_ptr<ParamBase>(new OneParam<int>("number of time steps", &_n_time_steps));
   _parameters["-step"]  = std::unique_ptr<ParamBase>(new OneParam<int>("step in snapshot export", &_step_snapshot));
+  _parameters["-bin"]   = std::unique_ptr<ParamBase>(new OneParam<bool>("if the files are in binary format", &_binary));
   _parameters["-v"]     = std::unique_ptr<ParamBase>(new OneParam<int>("verbosity level", &_verbose));
 
   update_longest_string_key_len();
@@ -180,87 +183,6 @@ void Parameters::update_longest_string_value_len()
     if (len_value_string > _longest_string_value_len)
       _longest_string_value_len = len_value_string;
   }
-}
-
-
-
-//==============================================================================
-//
-// Auxiliary functions
-//
-//==============================================================================
-int argcheck(int argc, char **argv, const char *arg)
-{
-  for(int i = 1; i < argc; ++i)
-  {
-    // strcmp returns 0 if the strings are equal
-    if(strcmp(argv[i], arg) == 0)
-      return(i);
-  }
-
-  return 0;
-}
-
-
-
-
-std::string add_space(const std::string &str, int length)
-{
-  const int n_spaces = std::max(length - (int)str.size(), 0);
-  return str + std::string(n_spaces, ' ');
-}
-
-
-
-
-std::string file_name(const std::string &path)
-{
-  if (path == "") return path;
-
-#if defined(__linux__) || defined(__APPLE__)
-  // extract a filename
-  const std::string fname = path.substr(path.find_last_of('/') + 1);
-#elif defined(_WIN32)
-  // extract a filename
-  const std::string fname = path.substr(path.find_last_of('\\') + 1);
-#endif
-
-  return fname;
-}
-
-
-
-
-std::string file_stem(const std::string &path)
-{
-  if (path == "") return path;
-
-  // get a file name from the path
-  const std::string fname = file_name(path);
-
-  // extract a stem and return it
-  return fname.substr(0, fname.find_last_of('.'));
-}
-
-
-
-
-std::string file_path(const std::string &path)
-{
-  if (path == "") return path;
-
-#if defined(__linux__) || defined(__APPLE__)
-  // extract a path
-  const std::string path_ = path.substr(0, path.find_last_of('/') + 1);
-#elif defined(_WIN32)
-  // extract a path
-  const std::string path_ = path.substr(0, path.find_last_of('\\') + 1);
-#endif
-
-  if (path_ == path)
-    return ""; // no path delimeters = no path
-
-  return path_;
 }
 
 

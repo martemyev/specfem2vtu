@@ -114,6 +114,9 @@ public:
   /// basically every (_step_snapshot)-th step is outputted
   int _step_snapshot;
 
+  /// Whether the specfem output files are in binary format
+  bool _binary;
+
   /// Verbosity level
   int _verbose;
 
@@ -154,57 +157,5 @@ protected:
   void update_longest_string_value_len();
 };
 
-
-
-
-//==============================================================================
-//
-// Auxiliary functions
-//
-//==============================================================================
-/**
- * Check if there is a string arg in the array of strings argv of length argc.
- * This is used to determine if there is an argument in a command line.
- * @return The position of the arg in the array argv, so that the value of the
- * argument can be read at the next position
- */
-int argcheck(int argc, char **argv, const char *arg);
-/**
- * Add some empty space to a given string str up to the given length. It's used
- * to represent all options aligned.
- * @return A string extended by spaces
- */
-std::string add_space(const std::string &str, int length);
-/**
- * Get (extract) a file name from the given path.
- * @param path - a name of a file under interest including the path
- * @return a string representing a name of the file.
- *         For example:
- * @verbatim
-   file_name("/home/user/file.dat") = "file.dat"
- * @endverbatim
- */
-std::string file_name(const std::string &path);
-/**
- * Extract a stem from a filename with a path.
- * @param path - a name of a file under interest including the path
- * @return a string which represents the name of the file without an extension -
- *         only a stem of the file.
- *         For example:
- * @verbatim
-   stem("/home/user/file.dat") = "file"
- * @endverbatim
- */
-std::string file_stem(const std::string &path);
-/**
-  Get (extract) a path of the given file.
-  @param path - a name of a file under interest including the path
-  @return a string representing the path to the file.
-          For example:
-  @verbatim
-  file_name("/home/user/file.dat") = "/home/user/"
-  @endverbatim
- */
-std::string file_path(const std::string &path);
 
 #endif // PARAMETERS_HPP

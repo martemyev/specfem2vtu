@@ -167,8 +167,7 @@ Point& Point::operator *=(double d)
 
 Point& Point::operator /=(double d)
 {
-  const double tol = DBL_EPSILON * DBL_EPSILON;
-  assert(fabs(d) > tol);
+  assert(fabs(d) > DBL_EPSILON*DBL_EPSILON);
 
   for (int i = 0; i < N_COORD; ++i)
     _coord[i] /= d;
