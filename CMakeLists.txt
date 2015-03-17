@@ -2,10 +2,19 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(specfem2vtu CXX)
 
-set(CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build type" FORCE)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RELEASE CACHE STRING
+      "Choose the type of build: Debug | Release" FORCE)
+endif()
+string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
+
 set(MY_CXX_FLAGS "-std=c++0x -Wall")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MY_CXX_FLAGS}")
+if(BUILD_TYPE MATCHES DEBUG)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${MY_CXX_FLAGS}")
+elseif(BUILD_TYPE MATCHES RELEASE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${MY_CXX_FLAGS}")
+endif()
 
 file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/*.cpp") # .cpp files
 file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/*.hpp") # .hpp files
@@ -14,14 +23,15 @@ file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/*.hpp") # .hpp files
 set(Triangle_DIR Triangle)
 include_directories(${Triangle_DIR})
 add_subdirectory(${Triangle_DIR})
-#message("Triangle_LIB = ${Triangle_LIB}")
 
-#find_library(Triangle_LIB triangle PATHS ${Triangle_DIR} PATH_SUFFIXES build)
-#if(Triangle_LIB)
-#  message(STATUS "triangle lib: ${Triangle_LIB}")
-#else()
-#  message(FATAL_ERROR "triangle library was not found")
-#endif()
+message("\n------------ specfem2vtu configuration information ------------")
+message("build type     " ${BUILD_TYPE})
+message("compiler       " ${CMAKE_CXX_COMPILER})
+if(BUILD_TYPE MATCHES DEBUG)
+  message("compiler flags " ${CMAKE_CXX_FLAGS_DEBUG})
+elseif(BUILD_TYPE MATCHES RELEASE)
+  message("compiler flags " ${CMAKE_CXX_FLAGS_RELEASE})
+endif()
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HDR_LIST})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC triangle)

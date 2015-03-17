@@ -26,4 +26,6 @@ void write_vtu(const std::string &filename,
                const triangulateio &io,
                const std::vector<Point> &U);
 
+void zero_initialization(triangulateio &io);
+
 #endif // SPECFEM2VTU_HPP

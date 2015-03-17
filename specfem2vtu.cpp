@@ -65,6 +65,19 @@ void specfem2vtu(const Parameters &param)
 
   // input and output info to work with the Triangle code
   triangulateio trin, trout;
+
+  zero_initialization(trin);
+  zero_initialization(trout);
+
+//  trin.numberofpointattributes = 0;
+//  trin.numberofcorners = 0;
+//  trin.numberofedges = 0;
+//  trin.numberofholes = 0;
+//  trin.numberofregions = 0;
+//  trin.numberofsegments = 0;
+//  trin.numberoftriangleattributes = 0;
+//  trin.numberoftriangles = 0;
+
   trin.numberofpoints = dofs.size();
   trin.pointlist = (REAL*)malloc(dofs.size() * 2 * sizeof(REAL));
   for (size_t i = 0; i < dofs.size(); ++i)
@@ -73,13 +86,33 @@ void specfem2vtu(const Parameters &param)
     trin.pointlist[2*i + 1] = dofs[i].y();
   }
 
-  trout.pointlist = NULL;
-  trout.trianglelist = NULL;
+//  trout.edgelist = NULL;
+//  trout.edgemarkerlist = NULL;
+//  trout.holelist = NULL;
+//  trout.neighborlist = NULL;
+//  trout.normlist = NULL;
+//  trout.pointattributelist = NULL;
+//  trout.pointlist = NULL;
+//  trout.pointmarkerlist = NULL;
+//  trout.regionlist = NULL;
+//  trout.segmentlist = NULL;
+//  trout.segmentmarkerlist = NULL;
+//  trout.trianglearealist = NULL;
+//  trout.triangleattributelist = NULL;
+//  trout.trianglelist = NULL;
 
+  if (param._verbose > 1)
+    std::cout << "Start triangulation process" << std::endl;
   triangulate(switches, &trin, &trout, NULL);
+  if (param._verbose > 1)
+    std::cout << "Triangulation process is over" << std::endl;
 
 #if defined(WRITE_MSH)
+  if (param._verbose > 0)
+    std::cout << "Writing to a .msh file..." << std::endl;
   write_msh(trout, "test.msh");
+  if (param._verbose > 0)
+    std::cout << "Writing to a .msh file is done" << std::endl;
 #endif
 
   if (param._verbose > 0)
@@ -111,7 +144,7 @@ void specfem2vtu(const Parameters &param)
 
     // write the solution in the vtu format
     //std::cout << "writing..." << std::flush;
-    solfile = file_stem(solfile) + ".vtu";
+    solfile = param._file_solution_base + d2s(tstep) + ".vtu";
     write_vtu(solfile, trout, U);
     //std::cout << "done" << std::endl;
   }
@@ -298,3 +331,42 @@ void write_vtu(const std::string &filename,
   out.close();
 }
 
+
+
+
+//==============================================================================
+//
+// Initialize the whole triangulateio structure with zero
+//
+//==============================================================================
+void zero_initialization(triangulateio &io)
+{
+  io.pointlist = NULL;
+  io.pointattributelist = NULL;
+  io.pointmarkerlist = 0;
+  io.numberofpoints = 0;
+  io.numberofpointattributes = 0;
+
+  io.trianglelist = NULL;
+  io.triangleattributelist = NULL;
+  io.trianglearealist = NULL;
+  io.neighborlist = NULL;
+  io.numberoftriangles = 0;
+  io.numberofcorners = 0;
+  io.numberoftriangleattributes = 0;
+
+  io.segmentlist = NULL;
+  io.segmentmarkerlist = NULL;
+  io.numberofsegments = 0;
+
+  io.holelist = NULL;
+  io.numberofholes = 0;
+
+  io.regionlist = NULL;
+  io.numberofregions = 0;
+
+  io.edgelist = NULL;
+  io.edgemarkerlist = NULL;
+  io.normlist = NULL;
+  io.numberofedges = 0;
+}
