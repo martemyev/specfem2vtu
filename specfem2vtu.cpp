@@ -16,7 +16,7 @@
 #define WRITE_MSH
 
 // real type for the specfem output
-#define SPEC_REAL double
+#define SPEC_REAL float
 
 
 
