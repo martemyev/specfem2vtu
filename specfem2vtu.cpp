@@ -69,15 +69,6 @@ void specfem2vtu(const Parameters &param)
   zero_initialization(trin);
   zero_initialization(trout);
 
-//  trin.numberofpointattributes = 0;
-//  trin.numberofcorners = 0;
-//  trin.numberofedges = 0;
-//  trin.numberofholes = 0;
-//  trin.numberofregions = 0;
-//  trin.numberofsegments = 0;
-//  trin.numberoftriangleattributes = 0;
-//  trin.numberoftriangles = 0;
-
   trin.numberofpoints = dofs.size();
   trin.pointlist = (REAL*)malloc(dofs.size() * 2 * sizeof(REAL));
   for (size_t i = 0; i < dofs.size(); ++i)
@@ -85,21 +76,6 @@ void specfem2vtu(const Parameters &param)
     trin.pointlist[2*i + 0] = dofs[i].x();
     trin.pointlist[2*i + 1] = dofs[i].y();
   }
-
-//  trout.edgelist = NULL;
-//  trout.edgemarkerlist = NULL;
-//  trout.holelist = NULL;
-//  trout.neighborlist = NULL;
-//  trout.normlist = NULL;
-//  trout.pointattributelist = NULL;
-//  trout.pointlist = NULL;
-//  trout.pointmarkerlist = NULL;
-//  trout.regionlist = NULL;
-//  trout.segmentlist = NULL;
-//  trout.segmentmarkerlist = NULL;
-//  trout.trianglearealist = NULL;
-//  trout.triangleattributelist = NULL;
-//  trout.trianglelist = NULL;
 
   if (param._verbose > 1)
     std::cout << "Start triangulation process" << std::endl;
@@ -277,9 +253,9 @@ void write_vtu(const std::string &filename,
   {
     for (int j = 0; j < Point::N_COORD; ++j)
       out << U[i].coord(j) << " ";
-    out << "\n";
   }
 
+  out << "\n";
   out << "        </DataArray>\n";
   out << "      </PointData>\n";
   out << "      <Points>\n";
@@ -291,9 +267,10 @@ void write_vtu(const std::string &filename,
   {
     for (int j = 0; j < dim; ++j)
       out << io.pointlist[i*dim + j] << " ";
-    out << "0 \n";
+    out << "0 ";
   }
 
+  out << "\n";
   out << "        </DataArray>\n";
   out << "      </Points>\n";
   out << "      <Cells>\n";
@@ -305,9 +282,9 @@ void write_vtu(const std::string &filename,
     // write the dofs indices
     for (int d = 0; d < io.numberofcorners; ++d)
       out << io.trianglelist[el*io.numberofcorners + d] << " ";
-    out << "\n";
   }
 
+  out << "\n";
   out << "        </DataArray>\n";
   out << "        <DataArray type=\"Int32\" Name=\"offsets\" "
          "format=\"ascii\">\n";
