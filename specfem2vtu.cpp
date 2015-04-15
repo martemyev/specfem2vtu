@@ -5,6 +5,8 @@
 
 #include <fstream>
 #include <cassert>
+#include <cstring>
+#include <cmath>
 
 // We use the Triangle project developed by J.R. Shewchuk to build the exact
 // Delaunay triangulation based on the set (cloud) of points
@@ -18,6 +20,16 @@
 // real type for the specfem output
 #define SPEC_REAL float
 
+// PI
+const double PI = 3.14159265358979323846264338327950288419716939937510582;
+
+// Convert the radians to degrees
+#define toDegrees(x) (x*180./PI)
+
+const int TRI_DIM = 2; // triangles dimenstion (used in getting point's
+                       // coordinates)
+const int N_TRI_VERTICES = 3; // number of vertices of a triangle
+const int N_TRI_ANGLES   = 3; // number of angles of a triangle
 
 
 //==============================================================================
@@ -48,20 +60,23 @@ void specfem2vtu(const Parameters &param)
     std::cout << "Delaunay triangulation of the dofs..." << std::endl;
 
   char switches[256];
-  int p = 0;
-//  switches[p++] = 'D'; // force to make conforming Delaunay triangulation
-  switches[p++] = 'z'; // numerate everything from 0
-  switches[p++] = 'B'; // no boundary markers in the output files
-  switches[p++] = 'P'; // no output .poly file
-//  switches[p++] = 'N'; // no output .node file
-//  switches[p++] = 'E'; // no output .ele file
-  switches[p++] = 'Y'; // no new vertices
-  switches[p++] = 'Y'; // assure it again
+  strcpy(switches, "");
+//  strcat(switches, "D"); // force to make conforming Delaunay triangulation
+  strcat(switches, "z"); // numerate everything from 0
+  strcat(switches, "B"); // no boundary markers in the output files
+  strcat(switches, "P"); // no output .poly file
+//  strcat(switches, "N"); // no output .node file
+//  strcat(switches, "E"); // no output .ele file
+  strcat(switches, "Y"); // no new vertices
+  strcat(switches, "Y"); // assure it again
   if (param._verbose > 1)
-    switches[p++] = 'V'; // verbose mode
+    strcat(switches, "V"); // verbose mode
   else
-    switches[p++] = 'Q'; // quiet mode
-  switches[p++] = '\0';
+    strcat(switches, "Q"); // quiet mode
+//  strcat(switches, "q15.0"); // should be no angles smaller than 15 degrees
+
+  if (param._verbose > 1)
+    std::cout << "String of parameters for Triangle: " << switches << std::endl;
 
   // input and output info to work with the Triangle code
   triangulateio trin, trout;
@@ -83,10 +98,20 @@ void specfem2vtu(const Parameters &param)
   if (param._verbose > 1)
     std::cout << "Triangulation process is over" << std::endl;
 
+  if (param._verbose > 1)
+    std::cout << "Choose good triangles" << std::endl;
+  std::vector<std::vector<int> > good_triangles;
+  const double min_angle = 1; // in degrees
+  const double max_angle = 160; // in degrees
+  choose_triangles(min_angle, max_angle, trout, good_triangles);
+  if (param._verbose > 1)
+    std::cout << "Good triangles are chosen:\n  number of discarded triangles: "
+              << trout.numberoftriangles - good_triangles.size() <<  std::endl;
+
 #if defined(WRITE_MSH)
   if (param._verbose > 0)
     std::cout << "Writing to a .msh file..." << std::endl;
-  write_msh(trout, "test.msh");
+  write_msh(trout, good_triangles, "test.msh");
   if (param._verbose > 0)
     std::cout << "Writing to a .msh file is done" << std::endl;
 #endif
@@ -121,7 +146,7 @@ void specfem2vtu(const Parameters &param)
     // write the solution in the vtu format
     //std::cout << "writing..." << std::flush;
     solfile = param._file_solution_base + d2s(tstep) + ".vtu";
-    write_vtu(solfile, trout, U);
+    write_vtu(solfile, trout, good_triangles, U);
     //std::cout << "done" << std::endl;
   }
   if (param._verbose > 0)
@@ -187,12 +212,14 @@ void read_content(const std::string &filename,
 
 
 
+
 //==============================================================================
 //
 // Write a .msh file in the ASCII 2.2 format which can be read by Gmsh
 //
 //==============================================================================
 void write_msh(const triangulateio &io,
+               const std::vector<std::vector<int> > triangles,
                const std::string &filename)
 {
   std::ofstream out(filename.c_str());
@@ -205,23 +232,25 @@ void write_msh(const triangulateio &io,
   for (int i = 0; i < io.numberofpoints; ++i)
   {
     out << i + 1 << " "
-        << io.pointlist[2*i + 0] << " "
-        << io.pointlist[2*i + 1] << " 0\n";
+        << io.pointlist[i*TRI_DIM + 0] << " "
+        << io.pointlist[i*TRI_DIM + 1] << " 0\n";
   }
   out << "$EndNodes\n";
   out << "$Elements\n";
-  out << io.numberoftriangles << "\n";
-  for (int i = 0; i < io.numberoftriangles; ++i)
+  const int n_triangles = triangles.size();
+  out << n_triangles << "\n";
+  for (int i = 0; i < n_triangles; ++i)
   {
     out << i + 1 << " 2 2 1 1 ";
-    for (int j = 0; j < io.numberofcorners; ++j)
-      out << io.trianglelist[i*io.numberofcorners + j] + 1 << " ";
+    for (int j = 0; j < N_TRI_VERTICES; ++j)
+      out << triangles[i][j] + 1 << " ";
     out << "\n";
   }
   out << "$EndElements\n";
 
   out.close();
 }
+
 
 
 
@@ -232,18 +261,21 @@ void write_msh(const triangulateio &io,
 //==============================================================================
 void write_vtu(const std::string &filename,
                const triangulateio &io,
+               const std::vector<std::vector<int> > triangles,
                const std::vector<Point> &U)
 {
   std::ofstream out(filename.c_str()); // open the file for writing
   if (!out)
     throw std::runtime_error("File " + filename + " cannot be opened");
 
+  const int n_triangles = triangles.size();
+
   out << "<?xml version=\"1.0\"?>\n";
   out << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
          "byte_order=\"LittleEndian\">\n";
   out << "  <UnstructuredGrid>\n";
   out << "    <Piece NumberOfPoints=\"" << io.numberofpoints
-      << "\" NumberOfCells=\"" << io.numberoftriangles << "\">\n";
+      << "\" NumberOfCells=\"" << n_triangles << "\">\n";
   out << "      <PointData Vectors=\"U\">\n";
 
   out << "        <DataArray type=\"Float64\" Name=\"U\" format=\"ascii\""
@@ -262,11 +294,10 @@ void write_vtu(const std::string &filename,
   out << "        <DataArray type=\"Float64\" NumberOfComponents=\""
       << Point::N_COORD << "\" format=\"ascii\">\n";
 
-  const int dim = 2;
   for (int i = 0; i < io.numberofpoints; ++i)
   {
-    for (int j = 0; j < dim; ++j)
-      out << io.pointlist[i*dim + j] << " ";
+    for (int j = 0; j < TRI_DIM; ++j)
+      out << io.pointlist[i*TRI_DIM + j] << " ";
     out << "0 ";
   }
 
@@ -277,11 +308,11 @@ void write_vtu(const std::string &filename,
   out << "        <DataArray type=\"Int32\" Name=\"connectivity\" "
          "format=\"ascii\">\n";
 
-  for (int el = 0; el < io.numberoftriangles; ++el)
+  for (int el = 0; el < n_triangles; ++el)
   {
     // write the dofs indices
-    for (int d = 0; d < io.numberofcorners; ++d)
-      out << io.trianglelist[el*io.numberofcorners + d] << " ";
+    for (int v = 0; v < N_TRI_VERTICES; ++v)
+      out << triangles[el][v] << " ";
   }
 
   out << "\n";
@@ -289,14 +320,14 @@ void write_vtu(const std::string &filename,
   out << "        <DataArray type=\"Int32\" Name=\"offsets\" "
          "format=\"ascii\">\n";
 
-  for (int el = 0; el < io.numberoftriangles; ++el)
-    out << (el + 1) * io.numberofcorners << " ";
+  for (int el = 0; el < n_triangles; ++el)
+    out << (el + 1) * N_TRI_VERTICES << " ";
   out << "\n";
 
   out << "        </DataArray>\n";
   out << "        <DataArray type=\"Int32\" Name=\"types\" format=\"ascii\">\n";
 
-  for (int el = 0; el < io.numberoftriangles; ++el)
+  for (int el = 0; el < n_triangles; ++el)
     out << "5 ";
   out << "\n";
 
@@ -347,3 +378,110 @@ void zero_initialization(triangulateio &io)
   io.normlist = NULL;
   io.numberofedges = 0;
 }
+
+
+
+
+//==============================================================================
+//
+// Remove the triangle with angles smaller than the 'min_angle' and larger than
+// the 'max_angle'.
+//
+//==============================================================================
+void choose_triangles(double min_angle,
+                      double max_angle,
+                      triangulateio &io,
+                      std::vector<std::vector<int> > &good_triangles)
+{
+  if (io.numberofcorners != N_TRI_VERTICES)
+    throw std::runtime_error("Number of vertices of a triangle is unexpected");
+
+  // vertices of a triangle
+  std::vector<int> vert_indices(N_TRI_VERTICES);
+  std::vector<Point> vertices(N_TRI_VERTICES);
+
+  // angles of a triangle
+  std::vector<double> angles(N_TRI_ANGLES);
+
+  // make sure this vector is empty
+  good_triangles.clear();
+
+  // inspect every triangle
+  for (int el = 0; el < io.numberoftriangles; ++el)
+  {
+    // get the vertices
+    for (int v = 0; v < N_TRI_VERTICES; ++v)
+    {
+      const int vert = io.trianglelist[el*N_TRI_VERTICES + v]; // vertex index
+      vert_indices[v] = vert; // save the index
+      vertices[v].coord(0) = io.pointlist[vert*TRI_DIM + 0]; // x-coordinate
+      vertices[v].coord(1) = io.pointlist[vert*TRI_DIM + 1]; // y-coordinate
+    }
+
+    // get the angles
+    compute_angles(vertices, angles);
+
+    // check if the angles are okay
+    bool bad_triangle = false;
+    for (int a = 0; a < N_TRI_ANGLES && !bad_triangle; ++a)
+    {
+      if (angles[a] < min_angle || angles[a] > max_angle)
+        bad_triangle = true;
+    }
+
+    // save the triangle satisfying the requirements (we save the indices of the
+    // vertices only)
+    if (!bad_triangle)
+      good_triangles.push_back(vert_indices);
+  }
+}
+
+
+
+
+//==============================================================================
+//
+// Compute the angles (in degrees) of a triangle based on its vertices.
+//
+//==============================================================================
+void compute_angles(const std::vector<Point> &vertices,
+                    std::vector<double> &angles)
+{
+  if (angles.empty()) angles.resize(N_TRI_ANGLES);
+
+  if ((int)vertices.size() != N_TRI_VERTICES)
+    throw std::runtime_error("Unexpected number of vertices of a triangle");
+
+  // lengths of the triangle's sides
+  const double a = length(vertices[0], vertices[1]);
+  const double b = length(vertices[0], vertices[2]);
+  const double c = length(vertices[1], vertices[2]);
+
+  // first angle
+  angles[0] = toDegrees(acos((b*b + c*c - a*a) / (2.*b*c)));
+  // second angle
+  angles[1] = toDegrees(acos((c*c + a*a - b*b) / (2.*c*a)));
+  // third angle
+  angles[2] = 180. - angles[0] - angles[1];
+}
+
+
+
+
+//==============================================================================
+//
+// Compute the length of a line connecting the two vertices.
+//
+//==============================================================================
+double length(const Point &a, const Point &b)
+{
+  double sum = 0.;
+  for (int i = 0; i < Point::N_COORD; ++i)
+  {
+    const double diff = a.coord(i) - b.coord(i);
+    sum += diff * diff;
+  }
+
+  return sqrt(sum);
+}
+
