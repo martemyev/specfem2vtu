@@ -31,6 +31,11 @@ const int TRI_DIM = 2; // triangles dimenstion (used in getting point's
 const int N_TRI_VERTICES = 3; // number of vertices of a triangle
 const int N_TRI_ANGLES   = 3; // number of angles of a triangle
 
+// These angles are used to determine if a triangle is appropriate or not (if it
+// has all angles within this range [MIN_ANGLE, MAX_ANGLE], it's good)
+const double MIN_ANGLE = 1.0;   // in degrees
+const double MAX_ANGLE = 160.0; // in degrees
+
 
 //==============================================================================
 //
@@ -101,9 +106,7 @@ void specfem2vtu(const Parameters &param)
   if (param._verbose > 1)
     std::cout << "Choose good triangles" << std::endl;
   std::vector<std::vector<int> > good_triangles;
-  const double min_angle = 1; // in degrees
-  const double max_angle = 160; // in degrees
-  choose_triangles(min_angle, max_angle, trout, good_triangles);
+  choose_triangles(MIN_ANGLE, MAX_ANGLE, trout, good_triangles);
   if (param._verbose > 1)
     std::cout << "Good triangles are chosen:\n  number of discarded triangles: "
               << trout.numberoftriangles - good_triangles.size() <<  std::endl;
