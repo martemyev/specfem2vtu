@@ -279,7 +279,7 @@ void write_vtu(const std::string &filename,
   out << "  <UnstructuredGrid>\n";
   out << "    <Piece NumberOfPoints=\"" << io.numberofpoints
       << "\" NumberOfCells=\"" << n_triangles << "\">\n";
-  out << "      <PointData Vectors=\"U\">\n";
+  out << "      <PointData Vectors=\"U\" Scalars=\"U_magnitude\">\n";
 
   out << "        <DataArray type=\"Float64\" Name=\"U\" format=\"ascii\""
          " NumberOfComponents=\"" << Point::N_COORD << "\">\n";
@@ -292,6 +292,22 @@ void write_vtu(const std::string &filename,
 
   out << "\n";
   out << "        </DataArray>\n";
+
+  out << "        <DataArray type=\"Float64\" Name=\"U_magnitude\" "
+         "format=\"ascii\" NumberOfComponents=\"1\">\n";
+
+  for (int i = 0; i < io.numberofpoints; ++i)
+  {
+    double magnitude = 0.0;
+    for (int j = 0; j < Point::N_COORD; ++j)
+      magnitude += U[i].coord(j) * U[i].coord(j);
+    magnitude = sqrt(magnitude);
+    out << magnitude << " ";
+  }
+
+  out << "\n";
+  out << "        </DataArray>\n";
+
   out << "      </PointData>\n";
   out << "      <Points>\n";
   out << "        <DataArray type=\"Float64\" NumberOfComponents=\""
