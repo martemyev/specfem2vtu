@@ -23,8 +23,8 @@ elseif(BUILD_TYPE MATCHES RELEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${MY_CXX_FLAGS}")
 endif()
 
-file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/*.cpp") # .cpp files
-file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/*.hpp") # .hpp files
+file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/src/*.cpp") # .cpp files
+file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/src/*.hpp") # .hpp files
 
 # Triangle software
 set(Triangle_DIR Triangle)
