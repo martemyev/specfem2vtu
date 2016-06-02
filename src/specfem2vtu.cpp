@@ -24,7 +24,7 @@
 const double PI = 3.14159265358979323846264338327950288419716939937510582;
 
 // Convert the radians to degrees
-#define toDegrees(x) (x*180./PI)
+static double toDegrees(double x) { return x*180.0/PI; }
 
 const int TRI_DIM = 2; // triangles dimenstion (used in getting point's
                        // coordinates)
@@ -196,8 +196,6 @@ void read_content(const std::string &filename,
       in.read((char*)&y, sizeof(SPEC_REAL));
       content[i] = Point(x, y);
     }
-
-    in.close();
   }
   else
   {
@@ -208,8 +206,6 @@ void read_content(const std::string &filename,
     content.clear();
     while (in >> x >> y)
       content.push_back(Point(x, y));
-
-    in.close();
   }
 }
 
@@ -250,8 +246,6 @@ void write_msh(const triangulateio &io,
     out << "\n";
   }
   out << "$EndElements\n";
-
-  out.close();
 }
 
 

@@ -1,9 +1,6 @@
 #include "parameters.hpp"
 #include "specfem2vtu.hpp"
 
-
-
-
 int main(int argc, char **argv)
 {
   try
